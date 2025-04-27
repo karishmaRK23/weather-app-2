@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Weather App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 20px;
+      background: linear-gradient(to right, #74ebd5, #acb6e5);
+    }
+    .container {
+      max-width: 400px;
+      margin: auto;
+      padding: 20px;
+      border-radius: 10px;
+      background: white;
+      box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+    }
+    input, button {
+      padding: 10px;
+      margin-top: 10px;
+      width: 100%;
+      border: none;
+      border-radius: 5px;
+    }
+    input { border: 1px solid #ccc; }
+    button {
+      background: #007BFF;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover { background: #0056b3; }
+    .weather-info, .history {
+      margin-top: 20px;
+      padding: 10px;
+      border-radius: 5px;
+      background: #f8f9fa;
+    }
+    .temperature { color: #FF5733; font-weight: bold; }
+    .humidity { color: #1E90FF; font-weight: bold; }
+    .wind-speed { color: #28A745; font-weight: bold; }
+    .condition { font-style: italic; color: #6C757D; }
+    .advice { font-weight: bold; color: #DC3545; }
+    .history-item {
+      border-top: 1px solid #ddd;
+      margin-top: 10px;
+      padding-top: 10px;
+      text-align: left;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2 style="color: #333;">🌤️ Weather App</h2>
+    <input type="text" id="city" placeholder="Enter city name" />
+    <button onclick="getWeather()">Get Weather</button>
+
+    <div class="weather-info" id="weather-info"></div>
+
+    <h3 style="margin-top: 30px;">📜 Weather History</h3>
+    <div class="history" id="weather-history">Loading...</div>
+  </div>
+
+  <script>
+    const API_BASE = 'http://localhost:5000';
+
+    async function getWeather() {
+      const city = document.getElementById('city').value.trim();
+      if (!city) return alert("Please enter a city name");
+
+      try {
+        const response = await fetch(`${API_BASE}/weather/${city}`);
+        const data = await response.json();
+
+        if (response.ok) {
+          let extraAdvice = "";
+
+          if (data.weather_description.includes("rain")) {
+            extraAdvice = "☔ Carry an umbrella and wear waterproof clothing.";
+          } else if (data.weather_description.includes("clear")) {
+            extraAdvice = "😎 Wear sunglasses and apply sunscreen.";
+          } else if (data.weather_description.includes("snow")) {
+            extraAdvice = "❄️ Wear warm layers and be cautious of slippery roads.";
+          } else if (data.weather_description.includes("storm")) {
+            extraAdvice = "🌩️ Stay indoors if possible and avoid open areas.";
+          } else if (data.weather_description.includes("fog")) {
+            extraAdvice = "🌫️ Drive carefully with low beams on.";
+          } else if (data.weather_description.includes("cloud")) {
+            extraAdvice = "☁️ It might be a gloomy day, but a good time for outdoor walks.";
+          }
+
+          document.getElementById('weather-info').innerHTML = `
+            <h3>🌍 Weather in ${data.city}</h3>
+            <p class="temperature"><strong>Temperature:</strong> ${data.temperature}°C</p>
+            <p class="humidity"><strong>Humidity:</strong> ${data.humidity}%</p>
+            <p class="wind-speed"><strong>Wind Speed:</strong> ${data.wind_speed} km/h</p>
+            <p class="condition"><strong>Condition:</strong> ${data.weather_description}</p>
+            <p class="advice"><strong>Recommendation:</strong> ${data.recommendation}</p>
+            <p class="advice"><strong>Additional Advice:</strong> ${extraAdvice}</p>
+          `;
+
+          fetchHistory(); // refresh history
+        } else {
+          document.getElementById('weather-info').innerHTML = `<p style='color: red;'>${data.error}</p>`;
+        }
+      } catch (error) {
+        console.error(error);
+        document.getElementById('weather-info').innerHTML = `<p style='color: red;'>Error fetching data</p>`;
+      }
+    }
+
+    async function fetchHistory() {
+      try {
+        const res = await fetch(`${API_BASE}/weather/history`);
+        const history = await res.json();
+
+        const html = history.map(entry => `
+          <div class="history-item">
+            <strong>${new Date(entry.created_at).toLocaleString()}</strong><br>
+            🌡️ ${entry.temperature}°C | 💧 ${entry.humidity}% | 🌬️ ${entry.wind_speed} m/s<br>
+            📝 ${entry.weather_description}<br>
+            💡 ${entry.recommendation}
+          </div>
+        `).join('');
+
+        document.getElementById('weather-history').innerHTML = html;
+      } catch (err) {
+        document.getElementById('weather-history').innerText = "Failed to load history.";
+      }
+    }
+
+    window.onload = fetchHistory;
+  </script>
+</body>
+</html>
